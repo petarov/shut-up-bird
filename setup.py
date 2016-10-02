@@ -9,9 +9,9 @@ with open('LICENSE') as f:
     license = f.read()
 
 setup(
-    name='Shut That Bird Up',
+    name='Shut Up Bird',
     version='1.0.0',
-    description='Archives and removes your Twitter tweets.',
+    description='Archive and remove your Twitter posts',
     long_description=readme,
     author='Petar Petrov',
     author_email='',
