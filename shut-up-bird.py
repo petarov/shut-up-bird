@@ -9,11 +9,15 @@ import json
 import tweepy
 import pystache
 import webbrowser
+import re
 from ebooklib import epub
 
 CONFIG_FILE = '.shut-up-bird.conf'
 ARCHIVES_DIR = './shut-up-bird.arch'
 
+#############################################################################
+# Tweepy routines
+#
 def tweep_login(consumer_key, consumer_secret, token='', secret=''):
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 
@@ -53,16 +57,21 @@ def tweep_archive(api):
     archive = archive_open(ARCHIVES_DIR, api.me())
 
     try:
-        for status in tweepy.Cursor(api.user_timeline).items(1):
+        for status in tweepy.Cursor(api.user_timeline).items(10):
             archive_add(status, archive)
     except tweepy.RateLimitError as e:
+        # TODO proper reaction?
         raise Exception("Rate limit reached!", e)
-        # TODO
 
     archive_close(archive)
 
-def tweep_delete(api):
+def tweep_delete(status):
     print ("TEST")
+    # TODO this could be put in a fork
+
+#############################################################################
+# Archive routines
+#
 
 def archive_open(dest_path, user):
     if not os.path.exists(dest_path):
@@ -79,27 +88,36 @@ def archive_open(dest_path, user):
     book.set_language(user.lang or 'en')
 
     book.add_author(user.name or user.screen_name)
+    book.spine = ['nav']
 
     return {'book': book, 'dest': dir_path}
 
 def archive_add(status, archive):
     book = archive['book']
-    
-    c = epub.EpubHtml(title='Intro', file_name='chap_01.xhtml', \
+
+    c = epub.EpubHtml(title='Intro', \
+        file_name='chap_' + str(status.id_str) + '.xhtml', \
         lang=status.lang or 'en')
-    c.content = '<h1>Title</h1>'
-    c.content += '<p>' + status.text + '</p>'
+    c.content = '<h1>' + excerpt(status.text) + '</h1>'
+    c.content += '<p>' + preprocess(status.text) + '</p>'
+    c.content += '<h4>' + str(status.created_at) + '</h4>'
     book.add_item(c)
 
-    book.spine = ['nav', c]
-    # add navigation files
-    book.add_item(epub.EpubNcx())
-    book.add_item(epub.EpubNav())
+    book.spine.append(c)
 
 def archive_close(archive):
-    print ("Writing ePub ...")
-    epub.write_epub(os.path.join(archive['dest'], 'tweets.epub'), archive['book'], {})
+    epub_dest = os.path.join(archive['dest'], 'tweets.epub')
+    print ("Writing ePub to {0} ...".format(epub_dest))
 
+    # add navigation files
+    archive['book'].add_item(epub.EpubNcx())
+    archive['book'].add_item(epub.EpubNav())
+
+    epub.write_epub(epub_dest, archive['book'], {})
+
+#############################################################################
+# Config routines
+#
 def config_load(config_path):
     if not os.path.exists(config_path):
         return False
@@ -114,11 +132,22 @@ def config_save(config_path, consumer_key, consumer_secret, token, secret):
     with open(config_path, 'w') as outfile:
         json.dump(data, outfile, indent=2, ensure_ascii=False)
 
+#############################################################################
+# Misc routines
+#
 def get_input(message):
     return raw_input(message)
 
+def preprocess(text):
+    # thx SO dude - http://stackoverflow.com/a/7254397
+    return re.sub('(?<!"|>)(ht|f)tps?://.*?(?=\s|$)', '<a href="\g<0>">\g<0></a>', text)
 
-###########################
+def excerpt(text):
+    text = re.sub('@(.*?)\S*', '', text)
+    return text[0:15] + ' ...'
+
+
+#############################################################################
 # Main
 #
 if __name__ == "__main__":
@@ -139,6 +168,8 @@ if __name__ == "__main__":
                 consumer_secret, auth.access_token, auth.access_token_secret)
 
         api = tweep_getAPI(auth)
+
+        # TODO get input!?
 
         tweep_archive(api)
 
