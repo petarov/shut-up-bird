@@ -2,14 +2,17 @@
 
 from __future__ import print_function
 import os
-import sys
+import sys, traceback
+from time import gmtime, strftime
 import argparse
 import json
 import tweepy
 import pystache
 import webbrowser
+from ebooklib import epub
 
 CONFIG_FILE = '.shut-up-bird.conf'
+ARCHIVES_DIR = './shut-up-bird.arch'
 
 def tweep_login(consumer_key, consumer_secret, token='', secret=''):
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
@@ -34,12 +37,68 @@ def tweep_login(consumer_key, consumer_secret, token='', secret=''):
 
 def tweep_getAPI(auth):
     api = tweepy.API(auth)
-    print("Authenticated as: {0}".format(api.me().screen_name))
+
+    print ("Authenticated as: {0}".format(api.me().screen_name))
+
+    limits = api.rate_limit_status()
+    statuses = limits['resources']['statuses']
+
+    print ("Rates left:")
+    print ("\tUser timeline: {0} / {1}".format(statuses['/statuses/user_timeline']['remaining'], statuses['/statuses/user_timeline']['limit']))
+    print ("\tLookup: {0} / {1}".format(statuses['/statuses/lookup']['remaining'], statuses['/statuses/lookup']['limit']))
+
     return api
 
+def tweep_archive(api):
+    archive = archive_open(ARCHIVES_DIR, api.me())
+
+    try:
+        for status in tweepy.Cursor(api.user_timeline).items(1):
+            archive_add(status, archive)
+    except tweepy.RateLimitError as e:
+        raise Exception("Rate limit reached!", e)
+        # TODO
+
+    archive_close(archive)
 
 def tweep_delete(api):
     print ("TEST")
+
+def archive_open(dest_path, user):
+    if not os.path.exists(dest_path):
+        os.mkdir(dest_path)
+
+    dir_path = os.path.join(dest_path, strftime("%Y-%m-%d_%H%M"))
+    if not os.path.exists(dir_path):
+        os.mkdir(dir_path)
+
+    # ePub Stuff
+    book = epub.EpubBook()
+    book.set_identifier('id' + str(user.id))
+    book.set_title('Tweets by @' + user.screen_name)
+    book.set_language(user.lang or 'en')
+
+    book.add_author(user.name or user.screen_name)
+
+    return {'book': book, 'dest': dir_path}
+
+def archive_add(status, archive):
+    book = archive['book']
+    
+    c = epub.EpubHtml(title='Intro', file_name='chap_01.xhtml', \
+        lang=status.lang or 'en')
+    c.content = '<h1>Title</h1>'
+    c.content += '<p>' + status.text + '</p>'
+    book.add_item(c)
+
+    book.spine = ['nav', c]
+    # add navigation files
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+
+def archive_close(archive):
+    print ("Writing ePub ...")
+    epub.write_epub(os.path.join(archive['dest'], 'tweets.epub'), archive['book'], {})
 
 def config_load(config_path):
     if not os.path.exists(config_path):
@@ -81,6 +140,8 @@ if __name__ == "__main__":
 
         api = tweep_getAPI(auth)
 
+        tweep_archive(api)
 
     except Exception as e:
+        traceback.print_exc(file=sys.stdout)
         print ("[ERROR] {0}".format(e))
