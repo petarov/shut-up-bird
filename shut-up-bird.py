@@ -15,9 +15,13 @@ from ebooklib import epub
 CONFIG_FILE = '.shut-up-bird.conf'
 ARCHIVES_DIR = './shut-up-bird.arch'
 
+PAR_TWEET = u'<blockquote class="ieverse"><p style="text-align:center;">\
+    <span style="text-align:left;display:inline-block;">{0}</span></p>\
+    </blockquote>'
+
 #############################################################################
 # Tweepy routines
-#
+
 def tweep_login(consumer_key, consumer_secret, token='', secret=''):
     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
 
@@ -71,7 +75,6 @@ def tweep_delete(status):
 
 #############################################################################
 # Archive routines
-#
 
 def archive_open(dest_path, user):
     if not os.path.exists(dest_path):
@@ -98,9 +101,11 @@ def archive_add(status, archive):
     c = epub.EpubHtml(title='Intro', \
         file_name='chap_' + str(status.id_str) + '.xhtml', \
         lang=status.lang or 'en')
-    c.content = '<h1>' + excerpt(status.text) + '</h1>'
-    c.content += '<p>' + preprocess(status.text) + '</p>'
-    c.content += '<h4>' + str(status.created_at) + '</h4>'
+
+    #c.content = '<h1>' + excerpt(status.text) + '</h1>'
+    c.content = preprocess(status.text)
+    c.content += '<h6 align="center">' + status.created_at.strftime("%A, %d %b %Y %H:%M") + '</h6>'
+
     book.add_item(c)
 
     book.spine.append(c)
@@ -117,7 +122,7 @@ def archive_close(archive):
 
 #############################################################################
 # Config routines
-#
+
 def config_load(config_path):
     if not os.path.exists(config_path):
         return False
@@ -134,13 +139,15 @@ def config_save(config_path, consumer_key, consumer_secret, token, secret):
 
 #############################################################################
 # Misc routines
-#
+
 def get_input(message):
     return raw_input(message)
 
 def preprocess(text):
     # thx SO dude - http://stackoverflow.com/a/7254397
-    return re.sub('(?<!"|>)(ht|f)tps?://.*?(?=\s|$)', '<a href="\g<0>">\g<0></a>', text)
+    text = re.sub('(?<!"|>)(ht|f)tps?://.*?(?=\s|$)', '<a href="\g<0>">\g<0></a>', text)
+    text = re.sub('@(.*?)\S*', '<a href="https://twitter.com/\g<0>">\g<0></a>', text) # TODO remove the @
+    return PAR_TWEET.format(text)
 
 def excerpt(text):
     text = re.sub('@(.*?)\S*', '', text)
@@ -149,7 +156,6 @@ def excerpt(text):
 
 #############################################################################
 # Main
-#
 if __name__ == "__main__":
     try:
         home_dir = os.path.expanduser('~')
