@@ -3,8 +3,8 @@
 from __future__ import print_function
 import os
 import sys, traceback
-from time import gmtime, strftime
 import argparse
+from time import gmtime, strftime
 import json
 import tweepy
 import pystache
@@ -59,19 +59,26 @@ def tweep_getAPI(auth):
 
 def tweep_archive(api):
     archive = archive_open(ARCHIVES_DIR, api.me())
+    delete_statuses = []
 
     try:
         for status in tweepy.Cursor(api.user_timeline).items(10):
             archive_add(status, archive)
+            delete_statuses.append(str(status.id_str))
+
+        tweep_delete_all(delete_statuses)
     except tweepy.RateLimitError as e:
-        # TODO proper reaction?
-        raise Exception("Rate limit reached!", e)
+        raise Exception("Twitter API rate limit reached! No tweets were deleted.", e)
 
     archive_close(archive)
 
-def tweep_delete(status):
-    print ("TEST")
+def tweep_delete_all(status_list):
+    print ("Removing {0} statuses ...".format(len(status_list)))
     # TODO this could be put in a fork
+
+def tweep_delete(status_id):
+    print ("TEST")
+    # TODO delete a tweet
 
 #############################################################################
 # Archive routines
@@ -87,7 +94,7 @@ def archive_open(dest_path, user):
     # ePub Stuff
     book = epub.EpubBook()
     book.set_identifier('id' + str(user.id))
-    book.set_title('Tweets by @' + user.screen_name)
+    book.set_title("Tweets by @" + user.screen_name)
     book.set_language(user.lang or 'en')
 
     book.add_author(user.name or user.screen_name)
@@ -107,7 +114,6 @@ def archive_add(status, archive):
     c.content += '<h6 align="center">' + status.created_at.strftime("%A, %d %b %Y %H:%M") + '</h6>'
 
     book.add_item(c)
-
     book.spine.append(c)
 
 def archive_close(archive):
@@ -119,6 +125,7 @@ def archive_close(archive):
     archive['book'].add_item(epub.EpubNav())
 
     epub.write_epub(epub_dest, archive['book'], {})
+    return epub_dest
 
 #############################################################################
 # Config routines
@@ -137,6 +144,16 @@ def config_save(config_path, consumer_key, consumer_secret, token, secret):
     with open(config_path, 'w') as outfile:
         json.dump(data, outfile, indent=2, ensure_ascii=False)
 
+def conf_get_parser():
+    parser = argparse.ArgumentParser(add_help=True,
+        description="So you're stuck, eh? Here're some hints.")
+    parser.add_argument('-id', '--max-id',
+        help='Archives and deletes all statuses with an ID less than (older than) or equal to the specified.')
+    parser.add_argument('-d', '--max-date',
+        help='Archives and deletes all statuses with a post date less than (older than) or equal to the specified.')
+
+    return parser
+
 #############################################################################
 # Misc routines
 
@@ -152,7 +169,6 @@ def preprocess(text):
 def excerpt(text):
     text = re.sub('@(.*?)\S*', '', text)
     return text[0:15] + ' ...'
-
 
 #############################################################################
 # Main
@@ -173,11 +189,13 @@ if __name__ == "__main__":
             config_save(os.path.join(home_dir, CONFIG_FILE), consumer_key, \
                 consumer_secret, auth.access_token, auth.access_token_secret)
 
-        api = tweep_getAPI(auth)
+        parser = conf_get_parser()
+        args = parser.parse_args()
+        if (not args.max_id and not args.max_date):
+            parser.print_help()
+            sys.exit(-1)
 
-        # TODO get input!?
-
-        tweep_archive(api)
+        tweep_archive(tweep_getAPI(auth))
 
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
