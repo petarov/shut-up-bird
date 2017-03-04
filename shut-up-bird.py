@@ -1,15 +1,18 @@
 #!/usr/bin/env python
+# pylint: disable=C0111
+# pylint: disable=C0103
+# pylint: disable=C0330
 
 from __future__ import print_function
 import os
 import sys, traceback
 import argparse
-from time import gmtime, strftime
+from time import gmtime, strftime, strptime
+import webbrowser
+import re
 import json
 import tweepy
 import pystache
-import webbrowser
-import re
 from ebooklib import epub
 
 CONFIG_FILE = '.shut-up-bird.conf'
@@ -52,23 +55,34 @@ def tweep_getAPI(auth):
     statuses = limits['resources']['statuses']
 
     print ("Rates left:")
-    print ("\tUser timeline: {0} / {1}".format(statuses['/statuses/user_timeline']['remaining'], statuses['/statuses/user_timeline']['limit']))
-    print ("\tLookup: {0} / {1}".format(statuses['/statuses/lookup']['remaining'], statuses['/statuses/lookup']['limit']))
+    print ("\tUser timeline: {0} / {1}".format(
+        statuses['/statuses/user_timeline']['remaining'],
+        statuses['/statuses/user_timeline']['limit']))
+    print ("\tLookup: {0} / {1}".format(
+        statuses['/statuses/lookup']['remaining'],
+        statuses['/statuses/lookup']['limit']))
 
     return api
 
-def tweep_archive(api):
+def tweep_archive(api, max_id=None, max_date=None):
     archive = archive_open(ARCHIVES_DIR, api.me())
     delete_statuses = []
 
     try:
-        for status in tweepy.Cursor(api.user_timeline).items(10):
-            archive_add(status, archive)
-            delete_statuses.append(str(status.id_str))
+        for page in tweepy.Cursor(api.user_timeline, max_id=max_id).pages(1):
+            for status in page:
+                #archive_add(status, archive)
+                print (status.id_str)
+                print (strptime(status.created_at, 'EEE MMM dd HH:mm:ss ZZZZZ yyyy'))
+                #'created_at': u'Sun May 11 11:10:27 +0000 2014'
+                delete_statuses.append(str(status.id_str))
 
         tweep_delete_all(delete_statuses)
+
     except tweepy.RateLimitError as e:
-        raise Exception("Twitter API rate limit reached! No tweets were deleted.", e)
+        raise Exception("Twitter API rate limit reached! No tweets will be deleted.", e)
+    except ValueError as e:
+        raise Exception("Could not parse status create time! No tweets were deleted.", e)
 
     archive_close(archive)
 
@@ -139,7 +153,7 @@ def config_load(config_path):
 
 def config_save(config_path, consumer_key, consumer_secret, token, secret):
     data = {'ck': consumer_key, 'cs': consumer_secret, \
-        't': token, 's': secret }
+        't': token, 's': secret}
 
     with open(config_path, 'w') as outfile:
         json.dump(data, outfile, indent=2, ensure_ascii=False)
@@ -148,9 +162,11 @@ def conf_get_parser():
     parser = argparse.ArgumentParser(add_help=True,
         description="So you're stuck, eh? Here're some hints.")
     parser.add_argument('-id', '--max-id',
-        help='Archives and deletes all statuses with an ID less than (older than) or equal to the specified.')
+        help="""Archives and deletes all statuses with an ID less than
+        (older than) or equal to the specified.""")
     parser.add_argument('-d', '--max-date',
-        help='Archives and deletes all statuses with a post date less than (older than) or equal to the specified.')
+        help="""Archives and deletes all statuses with a post date less than
+        (older than) or equal to the specified.""")
 
     return parser
 
@@ -161,13 +177,14 @@ def get_input(message):
     return raw_input(message)
 
 def preprocess(text):
-    # thx SO dude - http://stackoverflow.com/a/7254397
-    text = re.sub('(?<!"|>)(ht|f)tps?://.*?(?=\s|$)', '<a href="\g<0>">\g<0></a>', text)
-    text = re.sub('@(.*?)\S*', '<a href="https://twitter.com/\g<0>">\g<0></a>', text) # TODO remove the @
+    # thx dude! - http://stackoverflow.com/a/7254397
+    text = re.sub(r'(?<!"|>)(ht|f)tps?://.*?(?=\s|$)', r'<a href="\g<0>">\g<0></a>', text)
+    # TODO remove the @
+    text = re.sub(r'@(.*?)\S*', r'<a href="https://twitter.com/\g<0>">\g<0></a>', text)
     return PAR_TWEET.format(text)
 
 def excerpt(text):
-    text = re.sub('@(.*?)\S*', '', text)
+    text = re.sub(r'@(.*?)\S*', '', text)
     return text[0:15] + ' ...'
 
 #############################################################################
@@ -177,25 +194,25 @@ if __name__ == "__main__":
         home_dir = os.path.expanduser('~')
         config = config_load(os.path.join(home_dir, CONFIG_FILE))
 
-        if (config and config['t'] and config['s']):
-            auth = tweep_login(config['ck'], config['cs'], config['t'], config['s'])
+        if config and config['t'] and config['s']:
+            g_auth = tweep_login(config['ck'], config['cs'], config['t'], config['s'])
         else:
             print ("Please provide your Twitter app access keys\n")
-            consumer_key = get_input("Consumer Key (API Key): ")
-            consumer_secret = get_input("Consumer Secret (API Secret): ")
+            g_consumer_key = get_input("Consumer API Key: ")
+            g_consumer_secret = get_input("Consumer API Secret: ")
 
-            auth = tweep_login(consumer_key, consumer_secret)
+            g_auth = tweep_login(g_consumer_key, g_consumer_secret)
 
-            config_save(os.path.join(home_dir, CONFIG_FILE), consumer_key, \
-                consumer_secret, auth.access_token, auth.access_token_secret)
+            config_save(os.path.join(home_dir, CONFIG_FILE), g_consumer_key, \
+                g_consumer_secret, g_auth.access_token, g_auth.access_token_secret)
 
-        parser = conf_get_parser()
-        args = parser.parse_args()
-        if (not args.max_id and not args.max_date):
-            parser.print_help()
+        g_parser = conf_get_parser()
+        args = g_parser.parse_args()
+        if not args.max_id and not args.max_date:
+            g_parser.print_help()
             sys.exit(-1)
 
-        tweep_archive(tweep_getAPI(auth))
+        tweep_archive(tweep_getAPI(g_auth))
 
     except Exception as e:
         traceback.print_exc(file=sys.stdout)

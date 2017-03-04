@@ -20,4 +20,6 @@ Create a new [Twitter application](https://apps.twitter.com/).
 
 [MIT License](LICENSE)
 
-    Please note that I CANNOT be held liable in case you lose your data using this script! #justsayin' ;)
+## Disclaimer
+
+    Please note that I SHALL NOT be held liable in case you lose your data using this script! 
