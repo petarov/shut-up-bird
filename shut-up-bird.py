@@ -64,21 +64,28 @@ def tweep_getAPI(auth):
 
     return api
 
-def tweep_archive(api, max_id=None, max_date=None):
+def tweep_archive(api, max_id=None, max_date=None, skip_replies=False, remove=False):
     archive = archive_open(ARCHIVES_DIR, api.me())
     delete_statuses = []
 
     try:
         for page in tweepy.Cursor(api.user_timeline, max_id=max_id).pages(1):
             for status in page:
+                if status.in_reply_to_status_id and skip_replies:
+                    continue
+
                 archive_add(status, archive)
                 print (status.id_str)
                 print (status.created_at)
+                print (status)
                 #print (strptime(status.created_at, 'EEE MMM dd HH:mm:ss ZZZZZ yyyy'))
                 #'created_at': u'Sun May 11 11:10:27 +0000 2014'
-                delete_statuses.append(str(status.id_str))
 
-        tweep_delete_all(delete_statuses)
+                if remove:
+                    delete_statuses.append(str(status.id_str))
+
+        if remove:
+            tweep_delete_all(delete_statuses)
 
     except tweepy.RateLimitError as e:
         raise Exception("Twitter API rate limit reached! No tweets will be deleted.", e)
@@ -163,11 +170,18 @@ def conf_get_parser():
     parser = argparse.ArgumentParser(add_help=True,
         description="So you're stuck, eh? Here're some hints.")
     parser.add_argument('-id', '--max-id',
-        help="""Archives and deletes all statuses with an ID less than
+        help="""Archives all statuses with an ID less than
         (older than) or equal to the specified.""")
-    parser.add_argument('-d', '--max-date',
-        help="""Archives and deletes all statuses with a post date less than
+    parser.add_argument('-dt', '--max-date',
+        help="""Archives all statuses with a post date less than
         (older than) or equal to the specified.""")
+    parser.add_argument('-nr', '--no-reply',
+        help="""Skips reply tweets.""",
+        action="store_true", default=False)
+    parser.add_argument('--remove',
+        help="""Removes all archived tweets.
+        WARNING!!! This action is irreversable!""",
+        action="store_true", default=False)
 
     return parser
 
@@ -213,7 +227,7 @@ if __name__ == "__main__":
             g_parser.print_help()
             sys.exit(-1)
 
-        tweep_archive(tweep_getAPI(g_auth))
+        tweep_archive(tweep_getAPI(g_auth), skip_replies=args.no_reply)
 
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
