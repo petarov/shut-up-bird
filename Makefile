@@ -1,4 +1,4 @@
 init:
-  pip install -r requirements.txt
+	pip install -r requirements.txt
 
 .PHONY: init
