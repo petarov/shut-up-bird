@@ -11,8 +11,8 @@ from time import gmtime, strftime, strptime
 import webbrowser
 import re
 import json
-import tweepy
 import pystache
+import tweepy
 from ebooklib import epub
 
 CONFIG_FILE = '.shut-up-bird.conf'
@@ -38,7 +38,7 @@ def tweep_login(consumer_key, consumer_secret, token='', secret=''):
             print ("Opening url - {0} ...".format(redirect_url))
             webbrowser.open(redirect_url)
 
-            verify_code = raw_input("Verification PIN code: ".format(redirect_url))
+            verify_code = raw_input("Verification PIN code: ")
             auth.get_access_token(verify_code)
 
         except tweepy.TweepError as e:
@@ -71,9 +71,10 @@ def tweep_archive(api, max_id=None, max_date=None):
     try:
         for page in tweepy.Cursor(api.user_timeline, max_id=max_id).pages(1):
             for status in page:
-                #archive_add(status, archive)
+                archive_add(status, archive)
                 print (status.id_str)
-                print (strptime(status.created_at, 'EEE MMM dd HH:mm:ss ZZZZZ yyyy'))
+                print (status.created_at)
+                #print (strptime(status.created_at, 'EEE MMM dd HH:mm:ss ZZZZZ yyyy'))
                 #'created_at': u'Sun May 11 11:10:27 +0000 2014'
                 delete_statuses.append(str(status.id_str))
 
