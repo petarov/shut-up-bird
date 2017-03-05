@@ -2,9 +2,9 @@
 
 Archive and delete your Twitter posts.
 
-Do you want to get rid of your old tweets but still have them nicely packed somewhere?
+Do you want to get rid of your old tweets or likes, but still have them nicely packed somewhere?
 
-This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) format e-book for all your selected tweets and then (optionally) deletes them from Twitter. 
+This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) format e-book for all your selected tweets or likes and then (optionally) deletes them from Twitter. 
 
 # Installation
 
