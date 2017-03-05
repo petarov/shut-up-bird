@@ -67,27 +67,38 @@ def tweep_getAPI(auth):
 
     return api
 
-def tweep_archive(api, max_id=None, max_date=None, skip_replies=False, remove=False):
+def tweep_archive(api, max_id=None, max_date=None, skip_replies=False,
+    remove=False, ascending=False):
     archive = archive_open(ARCHIVES_DIR, api.me())
+    statuses = []
     delete_statuses = []
 
     try:
         for page in tweepy.Cursor(api.user_timeline, max_id=max_id).pages():
             for status in page:
                 if status.in_reply_to_status_id and skip_replies:
+                    print ("Skipped a reply tweet {0} on {1}".format(
+                        status.id_str, status.created_at))
                     continue
 
                 if max_date and pytz.utc.localize(status.created_at) > pytz.utc.localize(max_date):
-                    print ("Skipped tweet {0} on {1}".format(status.id_str, status.created_at))
+                    print ("Skipped tweet {0} on {1}".format(
+                        status.id_str, status.created_at))
                     continue
 
-                print (preprocess(status.text))
-
-                #archive_add(status, archive)
                 #print (status)
+                if ascending:
+                    statuses.append(status)
+                else:
+                    archive_add(status, archive)
 
                 if remove:
                     delete_statuses.append(str(status.id_str))
+
+        # reverse add posts from the temp array
+        if ascending:
+            for status in reversed(statuses):
+                archive_add(status, archive)
 
         if remove:
             tweep_delete_all(delete_statuses)
@@ -181,6 +192,9 @@ def conf_get_parser():
     parser.add_argument('-dt', '--max-date',
         help="""Archives all statuses with a post date less than
         (older than) or equal to the specified.""")
+    parser.add_argument('-a', '--asc',
+        help="""Adds tweets in ascending date order.""",
+        action="store_true", default=False)
     parser.add_argument('-nr', '--no-reply',
         help="""Skips reply tweets.""",
         action="store_true", default=False)
@@ -204,7 +218,7 @@ def preprocess(text):
     text = re.sub(r'(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+[A-Za-z0-9]+)',
         r'<a href="https://twitter.com/\1">@\1</a>', text)
     text = re.sub(r'(?:^|\s)[#]{1}(\w+)',
-        r'<a href="https://twitter.com/hashtag/\1">#\1</a>', text)
+        r' <a href="https://twitter.com/hashtag/\1">#\1</a>', text)
     return PAR_TWEET.format(text)
 
 def excerpt(text):
@@ -242,7 +256,7 @@ if __name__ == "__main__":
             print ("Max date set to: {0}".format(g_max_date))
 
         tweep_archive(tweep_getAPI(g_auth), max_id=args.max_id,
-            max_date=g_max_date, skip_replies=args.no_reply)
+            max_date=g_max_date, skip_replies=args.no_reply, ascending=args.asc)
 
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
