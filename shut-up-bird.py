@@ -21,6 +21,8 @@ from ebooklib import epub
 
 CONFIG_FILE = '.shut-up-bird.conf'
 ARCHIVES_DIR = './shut-up-bird.arch'
+TWEETS_EPUB = 'tweets.epub'
+LIKES_EPUB = 'likes.epub'
 
 PAR_TWEET = u'<blockquote class="ieverse"><p style="text-align:center;">\
     <span style="text-align:left;display:inline-block;">{0}</span></p>\
@@ -65,10 +67,16 @@ def tweep_getAPI(auth):
     verbose("\tLookup: {0} / {1}".format(
         statuses['/statuses/lookup']['remaining'],
         statuses['/statuses/lookup']['limit']))
+    # verbose("\tMentions timeline: {0} / {1}".format(
+    #     statuses['/statuses/mentions_timeline']['remaining'],
+    #     statuses['/statuses/mentions_timeline']['limit']))
+    # verbose("\tRetweets: {0} / {1}".format(
+    #     statuses['/statuses/retweets/:id']['remaining'],
+    #     statuses['/statuses/retweets/:id']['limit']))
 
     return api
 
-def tweep_archive(api, max_id=None, max_date=None,
+def tweep_archive_tweets(api, max_id=None, max_date=None,
     skip_retweets=False, skip_replies=False,
     remove=False, ascending=False):
 
@@ -96,11 +104,10 @@ def tweep_archive(api, max_id=None, max_date=None,
                         status.id_str, status.created_at))
                     continue
 
-                ##print (status)
                 if ascending:
                     statuses.append(status)
                 else:
-                    archive_add(status, archive)
+                    archive_add(archive, status)
 
                 if remove:
                     delete_statuses.append(status.id)
@@ -108,47 +115,90 @@ def tweep_archive(api, max_id=None, max_date=None,
         # reverse add posts from the temp array
         if ascending:
             for status in reversed(statuses):
-                archive_add(status, archive)
+                archive_add(archive, status)
+
+        archive_close(archive)
+
+        if remove:
+            tweep_delete_all(api, delete_statuses, tweep_delete_tweet)
 
     except tweepy.RateLimitError as e:
-        # TODO: save current state and make it possible to continue later
-        raise Exception("Twitter API rate limit reached! No tweets will be deleted.", e)
+        raise Exception("Twitter API rate limit reached!", e)
     except ValueError as e:
-        raise Exception("Could not parse status create time! No tweets were deleted.", e)
+        raise Exception("Could not parse status create time!", e)
 
-    archive_close(archive)
+def tweep_archive_likes(api, max_date=None, remove=False, ascending=False):
+    archive = archive_open(ARCHIVES_DIR, api.me(), isLikes=True)
+    likes = []
+    delete_likes = []
 
-    if remove:
-        tweep_delete_all(api, delete_statuses)
+    print ("Archiving {0} likes ...".format(api.me().screen_name))
 
-def tweep_delete_all(api, status_list):
+    try:
+        for page in tweepy.Cursor(api.favorites).pages():
+            for like in page:
+                if max_date and pytz.utc.localize(like.created_at) > pytz.utc.localize(max_date):
+                    verbose("Skipped like {0} on {1}".format(
+                        like.id_str, like.created_at))
+                    continue
+
+                if ascending:
+                    likes.append(like)
+                else:
+                    archive_add(archive, like, addAuthor=True)
+
+                if remove:
+                    delete_likes.append(like.id)
+
+        # reverse add likes from the temp array
+        if ascending:
+            for like in reversed(likes):
+                archive_add(archive, like, addAuthor=True)
+
+        archive_close(archive)
+
+        if remove:
+            tweep_delete_all(api, delete_likes, tweep_delete_like)
+
+    except tweepy.RateLimitError as e:
+        raise Exception("Twitter API rate limit reached!", e)
+    except ValueError as e:
+        raise Exception("Could not parse like create time!", e)
+
+def tweep_delete_all(api, posts, func):
     try:
         cpus = multiprocessing.cpu_count()
     except NotImplementedError:
-        cpus = 2   # arbitrary default
+        cpus = 2    # default
 
-    print ("Removing {0} statuses in {1} parallel threads ...".format(
-        len(status_list), cpus))
+    print ("Removing {0} entries in {1} parallel threads ...".format(
+        len(posts), cpus))
 
     pool = ThreadPool(processes=cpus)
-    for status_id in status_list:
-        pool.apply_async(tweep_delete, args=(api, status_id,))
+    for status_id in posts:
+        pool.apply_async(func, args=(api, status_id,))
 
     pool.close()
     pool.join()
 
-def tweep_delete(api, status_id):
-    verbose("Deleting tweet {0}".format(status_id))
+def tweep_delete_tweet(api, status_id):
+    verbose("Deleting status {0}".format(status_id))
     try:
         api.destroy_status(status_id)
     except Exception as e:
-        #traceback.print_exc(file=sys.stdout)
+        print ("[ERROR] {0}".format(e))
+
+def tweep_delete_like(api, like_id):
+    verbose("Removing like {0}".format(like_id))
+    try:
+        api.destroy_favorite(like_id)
+    except Exception as e:
         print ("[ERROR] {0}".format(e))
 
 #############################################################################
 # Archive routines
 
-def archive_open(dest_path, user):
+def archive_open(dest_path, user, isLikes=False):
     if not os.path.exists(dest_path):
         os.mkdir(dest_path)
 
@@ -159,31 +209,37 @@ def archive_open(dest_path, user):
     # ePub Stuff
     book = epub.EpubBook()
     book.set_identifier('id' + str(user.id))
-    book.set_title("Tweets by @" + user.screen_name)
+    book.set_title(("Tweets by" if not isLikes else "Twitter Likes of") + " @" + user.screen_name)
     book.set_language(user.lang or 'en')
 
     book.add_author(user.name or user.screen_name)
     book.spine = ['nav']
 
-    return {'book': book, 'dest': dir_path}
+    return {'book': book, 'dest': dir_path,
+        'filename': LIKES_EPUB if isLikes else TWEETS_EPUB}
 
-def archive_add(status, archive):
+def archive_add(archive, status, addAuthor=False):
     book = archive['book']
 
     c = epub.EpubHtml(title='Intro', \
         file_name='chap_' + str(status.id_str) + '.xhtml', \
         lang=status.lang or 'en')
 
-    #c.content = '<h1>' + excerpt(status.text) + '</h1>'
-    c.content = preprocess(status.text)
+    c.content = ''
+
+    if addAuthor and status.author:
+        screen_name = preprocess('@' + status.author._json['screen_name'].encode('utf8'))
+        c.content = "<h5 align='center'>{0}</h5>".format(screen_name)
+
+    c.content += preprocess(status.text)
     c.content += '<h6 align="center">' + status.created_at.strftime("%A, %d %b %Y %H:%M") + '</h6>'
 
     book.add_item(c)
     book.spine.append(c)
 
 def archive_close(archive):
-    epub_dest = os.path.join(archive['dest'], 'tweets.epub')
-    print ("Writing ePub to {0} ...".format(epub_dest))
+    epub_dest = os.path.join(archive['dest'], archive['filename'])
+    print ("Saving ePub to {0} ...".format(epub_dest))
 
     # add navigation files
     archive['book'].add_item(epub.EpubNcx())
@@ -218,8 +274,11 @@ def conf_get_parser():
     parser.add_argument('-id', '--max-id',
         help="""archives all statuses with an ID less than
         (older than) or equal to the specified""")
+    parser.add_argument('-l', '--likes',
+        help="""archives likes only""",
+        action="store_true", default=False)
     parser.add_argument('-dt', '--max-date',
-        help="""archives all statuses with a post date earlier than
+        help="""archives all statuses or likes with a post date earlier than
         or equal to the specified. Sample format: 2016-11-01 23:00:00+02:00""")
     parser.add_argument('-a', '--asc',
         help="""adds tweets in ascending date order""",
@@ -252,7 +311,7 @@ def preprocess(text):
     text = re.sub(r'(?<!"|>)(ht|f)tps?://.*?(?=\s|$)',
         r'<a href="\g<0>">\g<0></a>', text)
     # thx dude! x2 - gist.github.com/mahmoud/237eb20108b5805aed5f
-    text = re.sub(r'(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+[A-Za-z0-9]+)',
+    text = re.sub(r'(?:^|\s)[@]{1}([^\s#<>[\]|{}]+)',
         r'<a href="https://twitter.com/\1">@\1</a>', text)
     text = re.sub(r'(?:^|\s)[#]{1}(\w+)',
         r' <a href="https://twitter.com/hashtag/\1">#\1</a>', text)
@@ -286,20 +345,24 @@ if __name__ == "__main__":
         g_verbose = args.verbose
         g_max_date = None
 
-        if not args.max_id and not args.max_date:
+        if not args.max_id and not args.max_date and not args.likes:
             g_parser.print_help()
             sys.exit(-1)
         elif args.max_date:
             g_max_date = dateparser.parse(args.max_date)
-            verbose("** Max date set to: {0}".format(g_max_date))
+            verbose("** All entries till: {0}".format(g_max_date))
 
         if args.remove:
-            print ("** WARNING: Archvied tweets will be deleted from your Twitter account!")
+            print ("** WARNING: Archvied statuses will be removed from your Twitter account!")
 
-        tweep_archive(tweep_getAPI(g_auth), max_id=args.max_id,
-            max_date=g_max_date, skip_replies=args.no_reply,
-            skip_retweets=args.no_retweet, ascending=args.asc,
-            remove=args.remove)
+        if args.likes:
+            tweep_archive_likes(tweep_getAPI(g_auth),
+                max_date=g_max_date, ascending=args.asc, remove=args.remove)
+        else:
+            tweep_archive_tweets(tweep_getAPI(g_auth), max_id=args.max_id,
+                max_date=g_max_date, skip_replies=args.no_reply,
+                skip_retweets=args.no_retweet, ascending=args.asc,
+                remove=args.remove)
 
     except Exception as e:
         traceback.print_exc(file=sys.stdout)

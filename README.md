@@ -66,10 +66,15 @@ Tweets will be saved in ascending date order. Verbose messages will be displayed
 
     python2 shut-up-bird.py -v --max-date "2014-12-31" --asc --remove 
 
+Archive all likes up to `Dec 31, 2014` and then delete them from Twitter. 
+Likes will be saved in ascending date order. Verbose messages will be displayed.
+
+    python2 shut-up-bird.py -v --likes --max-date "2014-12-31" --asc --remove
+
 Generated ePub files can be found in the sub folder `./shut-up-bird.arch`, e.g., `./shut-up-bird.arch/2017-03-05_1000/tweets.epub`.
 
-Note that you must explicitly specify the `-remove` option in order to delete tweets.
-Tweets will be deleted only after an ePub e-book was successfully created.
+Note that you must explicitly specify the `-remove` option in order to delete tweets or likes.
+Tweets or likes will be deleted only after an ePub e-book was successfully created.
 
 # License
 
