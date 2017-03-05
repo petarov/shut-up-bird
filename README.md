@@ -2,9 +2,9 @@
 
 Archive and delete your Twitter posts.
 
-Do you want to get rid of your old tweets or likes, but still have them nicely packed somewhere?
+You really want to get rid of your old tweets or likes but still have them nicely organized somewhere? Or maybe you want to setup a cron to regularly clean up your timeline?
 
-This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from all the tweets or likes you select and then (optionally) deletes them from Twitter. 
+This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from a range of Twitter posts or likes and then (optionally) deletes them from your timeline.
 
 # Installation
 
@@ -14,7 +14,7 @@ Run `make` or `pip install -r requirements.txt`.
 
 # Setup
 
-Create a new [Twitter application](https://apps.twitter.com/). The name doesn't matter.
+Create a new [Twitter application](https://apps.twitter.com/). The name shouldn't matter.
 
 Open the new Twitter app's `Permissions` page and make sure `Read, Write and Access direct messages` 
 is selected, otherwise the tool will not be able to delete any tweets.
@@ -42,13 +42,13 @@ Accept the Twitter authorization request and enter the verification code back to
 
     Verification PIN code: 7654321
 
-All authorization parameters will be saved to your home directory, i.e., `~/.shut-up-bird.conf`.
+All authorization parameters will now be saved to your home directory, i.e., `~/.shut-up-bird.conf`.
 
-That's it. You're ready to go.
+That's it. You're ready to go. :ok_hand:
 
 # Usage
 
-Show help
+Show help :eyes:
 
     python2 shut-up-bird.py -h 
 
@@ -61,7 +61,7 @@ The same as above but skips all replies and retweets.
 
     python2 shut-up-bird.py -v -id 123456789012345678 -rt -re
 
-Archive all tweets until `Dec 31, 2014` and then delete them from Twitter. 
+Archive all tweets until `Dec 31, 2014` and then delete them from your Twitter timeline. 
 Tweets will be saved in ascending date order. Verbose logs will be displayed.
 
     python2 shut-up-bird.py -v --max-date "2014-12-31" --asc --remove 
@@ -74,7 +74,7 @@ Likes will be saved in ascending date order. Verbose logs will be displayed.
 Generated ePub files can be found in the sub folder `./shut-up-bird.arch`, e.g., `./shut-up-bird.arch/2017-03-05_1000/tweets.epub`.
 
 Note that you must explicitly specify the `--remove` option in order to delete tweets or likes.
-Tweets or likes will be deleted only after an ePub e-book was successfully created.
+Tweets or likes will be deleted only after an ePub file was successfully created first.
 
 # License
 
