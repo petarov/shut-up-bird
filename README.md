@@ -32,13 +32,13 @@ Enter the consumer API secret:
 
     Consumer API Secret: <50-chars>
 
-A Twitter authentication request page will open automatically. If not, copy and 
-paste the url specified in your browser window.
+A Twitter authentication request page should automatically open in your browser. 
+If not, or if you're running this on a server somewhere, open the url generated below in a browser yourself.
 
     Authenticating ...please wait
     Opening url - https://api.twitter.com/oauth/authorize?oauth_token=<token>
 
-Accep the authorization request and copy the verification code back to the console:
+Accept the Twitter authorization request and copy the verification code back to the console:
 
     Verification PIN code: 7654321
 
