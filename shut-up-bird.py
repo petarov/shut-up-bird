@@ -39,7 +39,7 @@ def tweep_login(consumer_key, consumer_secret, token='', secret=''):
             print ("Authenticating ...please wait")
             redirect_url = auth.get_authorization_url()
 
-            print ("Opening url - {0} ...".format(redirect_url))
+            print ("Opening url - {0}".format(redirect_url))
             webbrowser.open(redirect_url)
 
             verify_code = raw_input("Verification PIN code: ")
