@@ -1,9 +1,10 @@
 # Shut Up Bird
 
-Archives and deletes your Twitter posts.
+Archive and delete your Twitter posts.
 
 Do you want to get rid of your old tweets but still have them nicely packed somewhere?
-This tool creates a minimalistic **EPUB** format e-book of your selected tweets and then (optionally) **deletes** them from Twitter.
+
+This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) format e-book for all your selected tweets and then (optionally) deletes them from Twitter. 
 
 # Installation
 
@@ -16,7 +17,7 @@ Run `make` or `pip install -r requirements.txt`.
 Create a new [Twitter application](https://apps.twitter.com/). The name doesn't matter.
 
 Open the new Twitter app's `Permissions` page and make sure `Read, Write and Access direct messages` 
-is selected, otherwise the tool will **not be able to delete** any tweets.
+is selected, otherwise the tool will not be able to delete any tweets.
 
 Run without any parameters to initialize the tool:
 
@@ -47,11 +48,11 @@ That's it. You're ready to go.
 
 # Usage
 
-Shows help
+Show help
 
     python2 shut-up-bird.py -h 
 
-Archives all tweets older than the tweet with id `123456789012345678`. 
+Archive all tweets older than the tweet with id `123456789012345678`. 
 Tweets will be saved in descending date order. No tweets will be deleted.
 
     python2 shut-up-bird.py -v -id 123456789012345678
@@ -60,12 +61,12 @@ The same as above but skips all replies and retweets.
 
     python2 shut-up-bird.py -v -id 123456789012345678 -rt -re
 
-Archives all tweets up to `Dec 31, 2014` and then removes them. 
+Archive all tweets up to `Dec 31, 2014` and then delete them from Twitter. 
 Tweets will be saved in ascending date order. Verbose messages will be displayed.
 
     python2 shut-up-bird.py -v --max-date "2014-12-31" --asc --remove 
 
-ePub e-books can be found in, e.g., `./shut-up-bird.arch/2017-03-05_1000/tweets.epub`.
+Generated ePub files can be found in the sub folder `./shut-up-bird.arch`, e.g., `./shut-up-bird.arch/2017-03-05_1000/tweets.epub`.
 
 Note that you must explicitly specify the `-remove` option in order to delete tweets.
 Tweets will be deleted only after an ePub e-book was successfully created.
