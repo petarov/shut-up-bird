@@ -5,12 +5,15 @@
 
 from __future__ import print_function
 import os
-import sys, traceback
+import sys
 import argparse
-from time import gmtime, strftime, strptime
+import traceback
 import webbrowser
 import re
 import json
+from time import strftime, strptime
+import dateparser
+import pytz
 import pystache
 import tweepy
 from ebooklib import epub
@@ -69,17 +72,17 @@ def tweep_archive(api, max_id=None, max_date=None, skip_replies=False, remove=Fa
     delete_statuses = []
 
     try:
-        for page in tweepy.Cursor(api.user_timeline, max_id=max_id).pages(1):
+        for page in tweepy.Cursor(api.user_timeline, max_id=max_id).pages():
             for status in page:
                 if status.in_reply_to_status_id and skip_replies:
                     continue
 
+                if max_date and pytz.utc.localize(status.created_at) > pytz.utc.localize(max_date):
+                    print ("Skipped tweet {0} on {1}".format(status.id_str, status.created_at))
+                    continue
+
                 archive_add(status, archive)
-                print (status.id_str)
-                print (status.created_at)
-                print (status)
-                #print (strptime(status.created_at, 'EEE MMM dd HH:mm:ss ZZZZZ yyyy'))
-                #'created_at': u'Sun May 11 11:10:27 +0000 2014'
+                #print (status)
 
                 if remove:
                     delete_statuses.append(str(status.id_str))
@@ -88,6 +91,7 @@ def tweep_archive(api, max_id=None, max_date=None, skip_replies=False, remove=Fa
             tweep_delete_all(delete_statuses)
 
     except tweepy.RateLimitError as e:
+        # TODO: save current state and make it possible to continue later
         raise Exception("Twitter API rate limit reached! No tweets will be deleted.", e)
     except ValueError as e:
         raise Exception("Could not parse status create time! No tweets were deleted.", e)
@@ -221,13 +225,19 @@ if __name__ == "__main__":
             config_save(os.path.join(home_dir, CONFIG_FILE), g_consumer_key, \
                 g_consumer_secret, g_auth.access_token, g_auth.access_token_secret)
 
+        g_max_date = None
+
         g_parser = conf_get_parser()
         args = g_parser.parse_args()
         if not args.max_id and not args.max_date:
             g_parser.print_help()
             sys.exit(-1)
+        elif args.max_date:
+            g_max_date = dateparser.parse(args.max_date)
+            print ("Max date set to: {0}".format(g_max_date))
 
-        tweep_archive(tweep_getAPI(g_auth), skip_replies=args.no_reply)
+        tweep_archive(tweep_getAPI(g_auth), max_id=args.max_id,
+            max_date=g_max_date, skip_replies=args.no_reply)
 
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
