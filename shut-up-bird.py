@@ -11,10 +11,11 @@ import traceback
 import webbrowser
 import re
 import json
-from time import strftime, strptime
+import multiprocessing
+from multiprocessing.pool import ThreadPool
+from time import strftime
 import dateparser
 import pytz
-import pystache
 import tweepy
 from ebooklib import epub
 
@@ -83,7 +84,7 @@ def tweep_archive(api, max_id=None, max_date=None,
                         status.id_str, status.created_at))
                     continue
 
-                if status.retweeted:
+                if status.retweeted and skip_retweets:
                     print ("Skipped retweet {0} on {1}".format(
                         status.id_str, status.created_at))
                     continue
@@ -107,9 +108,6 @@ def tweep_archive(api, max_id=None, max_date=None,
             for status in reversed(statuses):
                 archive_add(status, archive)
 
-        if remove:
-            tweep_delete_all(delete_statuses)
-
     except tweepy.RateLimitError as e:
         # TODO: save current state and make it possible to continue later
         raise Exception("Twitter API rate limit reached! No tweets will be deleted.", e)
@@ -118,13 +116,28 @@ def tweep_archive(api, max_id=None, max_date=None,
 
     archive_close(archive)
 
-def tweep_delete_all(status_list):
-    print ("Removing {0} statuses ...".format(len(status_list)))
-    # TODO this could be put in a fork
+    if remove:
+        tweep_delete_all(api, delete_statuses)
 
-def tweep_delete(status_id):
-    print ("TEST")
-    # TODO delete a tweet
+def tweep_delete_all(api, status_list):
+    try:
+        cpus = multiprocessing.cpu_count()
+    except NotImplementedError:
+        cpus = 2   # arbitrary default
+
+    print ("Removing {0} statuses in {1} parallel threads ...".format(
+        len(status_list), cpus))
+
+    pool = ThreadPool(processes=cpus)
+    for status_id in status_list:
+        pool.apply_async(tweep_delete, args=(api, status_id,))
+
+    pool.close()
+    pool.join()
+
+def tweep_delete(api, status_id):
+    print ("Deleting tweet {0}".format(status_id))
+    ##api.destroy_status(status_id)
 
 #############################################################################
 # Archive routines
@@ -268,7 +281,8 @@ if __name__ == "__main__":
 
         tweep_archive(tweep_getAPI(g_auth), max_id=args.max_id,
             max_date=g_max_date, skip_replies=args.no_reply,
-            skip_retweets=args.no_retweet, ascending=args.asc)
+            skip_retweets=args.no_retweet, ascending=args.asc,
+            remove=args.remove)
 
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
