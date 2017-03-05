@@ -53,16 +53,16 @@ def tweep_login(consumer_key, consumer_secret, token='', secret=''):
 def tweep_getAPI(auth):
     api = tweepy.API(auth)
 
-    print ("Authenticated as: {0}".format(api.me().screen_name))
+    verbose("Authenticated as: {0}".format(api.me().screen_name))
 
     limits = api.rate_limit_status()
     statuses = limits['resources']['statuses']
 
-    print ("Rates left:")
-    print ("\tUser timeline: {0} / {1}".format(
+    verbose("Rates left:")
+    verbose("\tUser timeline: {0} / {1}".format(
         statuses['/statuses/user_timeline']['remaining'],
         statuses['/statuses/user_timeline']['limit']))
-    print ("\tLookup: {0} / {1}".format(
+    verbose("\tLookup: {0} / {1}".format(
         statuses['/statuses/lookup']['remaining'],
         statuses['/statuses/lookup']['limit']))
 
@@ -76,21 +76,23 @@ def tweep_archive(api, max_id=None, max_date=None,
     statuses = []
     delete_statuses = []
 
+    print ("Archiving {0} tweets ...".format(api.me().screen_name))
+
     try:
         for page in tweepy.Cursor(api.user_timeline, max_id=max_id).pages():
             for status in page:
                 if max_date and pytz.utc.localize(status.created_at) > pytz.utc.localize(max_date):
-                    print ("Skipped tweet {0} on {1}".format(
+                    verbose("Skipped tweet {0} on {1}".format(
                         status.id_str, status.created_at))
                     continue
 
                 if status.retweeted and skip_retweets:
-                    print ("Skipped retweet {0} on {1}".format(
+                    verbose("Skipped retweet {0} on {1}".format(
                         status.id_str, status.created_at))
                     continue
 
                 if status.in_reply_to_status_id and skip_replies:
-                    print ("Skipped a reply tweet {0} on {1}".format(
+                    verbose("Skipped a reply tweet {0} on {1}".format(
                         status.id_str, status.created_at))
                     continue
 
@@ -136,7 +138,7 @@ def tweep_delete_all(api, status_list):
     pool.join()
 
 def tweep_delete(api, status_id):
-    print ("Deleting tweet {0}".format(status_id))
+    verbose("Deleting tweet {0}".format(status_id))
     ##api.destroy_status(status_id)
 
 #############################################################################
@@ -206,30 +208,37 @@ def config_save(config_path, consumer_key, consumer_secret, token, secret):
 def conf_get_parser():
     parser = argparse.ArgumentParser(add_help=True,
         description="So you're stuck, eh? Here're some hints.")
+    parser.add_argument('-v', '--verbose',
+        help="""verbose (See what's happening)""",
+        action="store_true", default=False)
     parser.add_argument('-id', '--max-id',
-        help="""Archives all statuses with an ID less than
-        (older than) or equal to the specified.""")
+        help="""archives all statuses with an ID less than
+        (older than) or equal to the specified""")
     parser.add_argument('-dt', '--max-date',
-        help="""Archives all statuses with a post date less than
-        (older than) or equal to the specified.""")
+        help="""archives all statuses with a post date earlier than
+        or equal to the specified. Sample format: 2016-11-01 23:00:00+02:00""")
     parser.add_argument('-a', '--asc',
-        help="""Adds tweets in ascending date order.""",
+        help="""adds tweets in ascending date order""",
         action="store_true", default=False)
     parser.add_argument('-rt', '--no-retweet',
-        help="""Skips retweet posts.""",
+        help="""skips retweets""",
         action="store_true", default=False)
     parser.add_argument('-re', '--no-reply',
-        help="""Skips reply tweets.""",
+        help="""skips reply tweets""",
         action="store_true", default=False)
     parser.add_argument('--remove',
-        help="""Removes all archived tweets.
-        WARNING!!! This action is irreversable!""",
+        help="""removes all archived tweets.
+        *** WARNING!!! This action is irreversible! ***""",
         action="store_true", default=False)
 
     return parser
 
 #############################################################################
 # Misc routines
+
+def verbose(message):
+    if g_verbose:
+        print (message)
 
 def get_input(message):
     return raw_input(message)
@@ -268,16 +277,20 @@ if __name__ == "__main__":
             config_save(os.path.join(home_dir, CONFIG_FILE), g_consumer_key, \
                 g_consumer_secret, g_auth.access_token, g_auth.access_token_secret)
 
-        g_max_date = None
-
         g_parser = conf_get_parser()
         args = g_parser.parse_args()
+        g_verbose = args.verbose
+        g_max_date = None
+
         if not args.max_id and not args.max_date:
             g_parser.print_help()
             sys.exit(-1)
         elif args.max_date:
             g_max_date = dateparser.parse(args.max_date)
-            print ("Max date set to: {0}".format(g_max_date))
+            verbose("** Max date set to: {0}".format(g_max_date))
+
+        if args.remove:
+            print ("** WARNING: Archvied tweets will be deleted from your Twitter account!")
 
         tweep_archive(tweep_getAPI(g_auth), max_id=args.max_id,
             max_date=g_max_date, skip_replies=args.no_reply,
