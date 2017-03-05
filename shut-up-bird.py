@@ -81,7 +81,9 @@ def tweep_archive(api, max_id=None, max_date=None, skip_replies=False, remove=Fa
                     print ("Skipped tweet {0} on {1}".format(status.id_str, status.created_at))
                     continue
 
-                archive_add(status, archive)
+                print (preprocess(status.text))
+
+                #archive_add(status, archive)
                 #print (status)
 
                 if remove:
@@ -197,9 +199,12 @@ def get_input(message):
 
 def preprocess(text):
     # thx dude! - http://stackoverflow.com/a/7254397
-    text = re.sub(r'(?<!"|>)(ht|f)tps?://.*?(?=\s|$)', r'<a href="\g<0>">\g<0></a>', text)
-    # TODO remove the @
-    text = re.sub(r'@(.*?)\S*', r'<a href="https://twitter.com/\g<0>">\g<0></a>', text)
+    text = re.sub(r'(?<!"|>)(ht|f)tps?://.*?(?=\s|$)',
+        r'<a href="\g<0>">\g<0></a>', text)
+    text = re.sub(r'(?<=^|(?<=[^a-zA-Z0-9-_\.]))@([A-Za-z]+[A-Za-z0-9]+)',
+        r'<a href="https://twitter.com/\1">@\1</a>', text)
+    text = re.sub(r'(?:^|\s)[#]{1}(\w+)',
+        r'<a href="https://twitter.com/hashtag/\1">#\1</a>', text)
     return PAR_TWEET.format(text)
 
 def excerpt(text):
