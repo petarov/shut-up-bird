@@ -103,7 +103,7 @@ def tweep_archive(api, max_id=None, max_date=None,
                     archive_add(status, archive)
 
                 if remove:
-                    delete_statuses.append(str(status.id_str))
+                    delete_statuses.append(status.id)
 
         # reverse add posts from the temp array
         if ascending:
@@ -139,7 +139,11 @@ def tweep_delete_all(api, status_list):
 
 def tweep_delete(api, status_id):
     verbose("Deleting tweet {0}".format(status_id))
-    ##api.destroy_status(status_id)
+    try:
+        api.destroy_status(status_id)
+    except Exception as e:
+        #traceback.print_exc(file=sys.stdout)
+        print ("[ERROR] {0}".format(e))
 
 #############################################################################
 # Archive routines

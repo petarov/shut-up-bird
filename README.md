@@ -15,6 +15,9 @@ Run `make` or `pip install -r requirements.txt`.
 
 Create a new [Twitter application](https://apps.twitter.com/). The name doesn't matter.
 
+Open the new Twitter app's `Permissions` page and make sure `Read, Write and Access direct messages` 
+is selected, otherwise the tool will **not be able to delete** any tweets.
+
 Run without any parameters to initialize the tool:
 
     $ python2 shut-up-bird.py
