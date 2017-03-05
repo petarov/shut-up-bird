@@ -2,7 +2,7 @@
 
 Archive and delete your Twitter posts.
 
-You really want to get rid of your old tweets or likes but still have them nicely organized somewhere? Or maybe you want to setup a cron to regularly clean up your timeline?
+You'd like to get rid of your old tweets or _likes_ but still have them nicely organized somewhere? Or maybe you want to setup a cron to regularly clean up your timeline?
 
 This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from a range of Twitter posts or likes and then (optionally) deletes them from your timeline.
 
