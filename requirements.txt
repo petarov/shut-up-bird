@@ -1,4 +1,3 @@
-pystache
 tweepy
 ebooklib
 dateparser
