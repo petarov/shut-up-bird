@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: utf-8
 # pylint: disable=C0111
 # pylint: disable=C0103
 # pylint: disable=C0330
@@ -44,7 +45,7 @@ def tweep_login(consumer_key, consumer_secret, token='', secret=''):
             print ("Opening url - {0}".format(redirect_url))
             webbrowser.open(redirect_url)
 
-            verify_code = raw_input("Verification PIN code: ")
+            verify_code = get_input("Verification PIN code: ")
             auth.get_access_token(verify_code)
 
         except tweepy.TweepError as e:
@@ -304,7 +305,10 @@ def verbose(message):
         print (message)
 
 def get_input(message):
-    return raw_input(message)
+    try:
+        return raw_input(message)
+    except NameError:
+        return input(message)
 
 def preprocess(text):
     # thx dude! - stackoverflow.com/a/7254397

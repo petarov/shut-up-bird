@@ -8,7 +8,7 @@ This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from a ra
 
 # Installation
 
-Requires Python `2.7`
+Requires Python `2.7` or `3.x`.
 
 Run `make` or `pip install -r requirements.txt`.
 
