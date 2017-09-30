@@ -20,6 +20,7 @@ import pytz
 import tweepy
 from ebooklib import epub
 
+VERSION = '1.0'
 CONFIG_FILE = '.shut-up-bird.conf'
 ARCHIVES_DIR = './shut-up-bird.arch'
 TWEETS_EPUB = 'tweets.epub'
@@ -269,6 +270,9 @@ def config_save(config_path, consumer_key, consumer_secret, token, secret):
 def conf_get_parser():
     parser = argparse.ArgumentParser(add_help=True,
         description="So you're stuck, eh? Here're some hints.")
+    parser.add_argument('-V', '--version',
+        help="""prints how old Smeagol is""",
+        action="store_true", default=False)
     parser.add_argument('-v', '--verbose',
         help="""verbose (See what's happening)""",
         action="store_true", default=False)
@@ -349,7 +353,11 @@ if __name__ == "__main__":
         g_verbose = args.verbose
         g_max_date = None
 
-        if not args.max_id and not args.max_date and not args.likes:
+        if args.version:
+            print ('{} {}'.format(
+                os.path.basename(__file__).rstrip('.py'), VERSION))
+            sys.exit(-1)
+        elif not args.max_id and not args.max_date and not args.likes:
             g_parser.print_help()
             sys.exit(-1)
         elif args.max_date:
