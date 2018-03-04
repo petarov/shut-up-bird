@@ -10,6 +10,14 @@ This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from a ra
 
 Requires Python `2.7` or `3.x`.
 
+## Packages
+
+To install on **ArchLinux** from [AUR](https://aur.archlinux.org/packages/shut-up-bird) run:
+
+    yaourt -S shut-up-bird
+
+## Manual
+
 Run `make` or `pip install -r requirements.txt`.
 
 # Setup
