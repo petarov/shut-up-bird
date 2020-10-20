@@ -376,6 +376,11 @@ if __name__ == "__main__":
                 skip_retweets=args.no_retweet, ascending=args.asc,
                 remove=args.remove)
 
+    except tweepy.TweepError as e:
+        traceback.print_exc(file=sys.stdout)
+        print ("[ERROR] {0}".format(e))
+        if e.response.status_code == 429:
+            print ("""The maximum number of requests that are allowed is based on a time interval, some specified period or window of time. The most common request limit interval is fifteen minutes. If an endpoint has a rate limit of 900 requests/15-minutes, then up to 900 requests over any 15-minute interval is allowed.""")
     except Exception as e:
         traceback.print_exc(file=sys.stdout)
         print ("[ERROR] {0}".format(e))
