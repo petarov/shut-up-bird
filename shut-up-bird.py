@@ -20,7 +20,7 @@ import pytz
 import tweepy
 from ebooklib import epub
 
-VERSION = '1.0'
+VERSION = '1.1'
 CONFIG_FILE = '.shut-up-bird.conf'
 ARCHIVES_DIR = './shut-up-bird.arch'
 TWEETS_EPUB = 'tweets.epub'

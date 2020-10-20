@@ -10,7 +10,7 @@ with open('LICENSE') as f:
 
 setup(
     name='Shut Up Bird',
-    version='1.0.0',
+    version='1.1.0',
     description='Archives and removes your Twitter posts',
     long_description=readme,
     author='Petar Petrov',
