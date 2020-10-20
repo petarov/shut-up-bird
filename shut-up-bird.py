@@ -230,7 +230,10 @@ def archive_add(archive, status, addAuthor=False):
     c.content = ''
 
     if addAuthor and status.author:
-        screen_name = preprocess('@' + str(status.author._json['screen_name'].encode('utf8')))
+        if sys.version_info[0] >= 3:
+            screen_name = preprocess('@' + status.author._json['screen_name'])
+        else:
+            screen_name = preprocess('@' + status.author._json['screen_name'].encode('utf8'))
         c.content = "<h5 align='center'>{0}</h5>".format(screen_name)
 
     c.content += preprocess(status.text)
