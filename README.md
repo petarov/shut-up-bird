@@ -1,10 +1,14 @@
 # Shut Up Bird
 
-Archive and delete your Twitter posts.
+Archives your tweets in an [EPUB](https://en.wikipedia.org/wiki/EPUB) book and then optionally deletes them.
 
-You'd like to get rid of your old tweets or _likes_ but still have them nicely organized somewhere? Or maybe you want to setup a cron to regularly clean up your timeline?
+Things you could do:
 
-This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from a range of Twitter posts or likes and then optionally deletes them from your timeline.
+  * Get rid of your old _tweets_ or _likes_ but still have them nicely organized somewhere.
+  * An annual archive of your twitter activty.
+  * Setup a cron job to regularly clean up your status.
+  * Archive someone else's tweets for your own viewing pleasure.
+  * Read your own tweets in your favourite e-book reader app and cry. 
 
 # Installation
 
