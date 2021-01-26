@@ -4,7 +4,7 @@ Archive and delete your Twitter posts.
 
 You'd like to get rid of your old tweets or _likes_ but still have them nicely organized somewhere? Or maybe you want to setup a cron to regularly clean up your timeline?
 
-This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from a range of Twitter posts or likes and then (optionally) deletes them from your timeline.
+This tool creates an [ePub](https://en.wikipedia.org/wiki/EPUB) e-book from a range of Twitter posts or likes and then optionally deletes them from your timeline.
 
 # Installation
 
@@ -24,7 +24,7 @@ Run `make` or `pip install -r requirements.txt`.
 
 Create a new [Twitter application](https://apps.twitter.com/). The name shouldn't matter.
 
-Open the new Twitter app's `Permissions` page and make sure `Read, Write and Access direct messages` is selected, otherwise `shut-up-bird` will not be able to delete any tweets.
+Open the app's `Permissions` page and make sure `Read and Write` is selected, otherwise `shut-up-bird` will not be able to delete anything.
 
 Run without any parameters to initialize:
 
@@ -57,8 +57,16 @@ That's it. You're ready to go. :ok_hand:
 Show help :eyes:
 
     python shut-up-bird.py -h 
+    
+Archive all of your tweets until `Dec 31, 2014` and then delete them from Twitter. Tweets will be saved in ascending date order. Verbose logs will be displayed.
 
-Archive all tweets posted before the tweet with id `123456789012345678`. Tweets will be saved in descending date order. No tweets will be deleted.
+    python shut-up-bird.py -v --max-date "2014-12-31" --asc --remove 
+
+Archive all of your likes until `Dec 31, 2014` and then delete them from Twitter. Likes will be saved in ascending date order. Verbose logs will be displayed.
+
+    python shut-up-bird.py -v --likes --max-date "2014-12-31" --asc --remove
+
+Archive all of your tweets posted before the tweet with id `123456789012345678`. Tweets will be saved in descending date order. No tweets will be deleted.
 
     python shut-up-bird.py -v -id 123456789012345678
 
@@ -66,17 +74,9 @@ The same as above but skips all replies and retweets.
 
     python shut-up-bird.py -v -id 123456789012345678 -rt -re
 
-Archive all tweets until `Dec 31, 2014` and then delete them from your Twitter timeline. Tweets will be saved in ascending date order. Verbose logs will be displayed.
+Generated `epub` files are found in the sub folder `./shut-up-bird.arch`, e.g., `./shut-up-bird.arch/2017-03-05_1000/tweets.epub`.
 
-    python shut-up-bird.py -v --max-date "2014-12-31" --asc --remove 
-
-Archive all likes until `Dec 31, 2014` and then delete them from Twitter. Likes will be saved in ascending date order. Verbose logs will be displayed.
-
-    python shut-up-bird.py -v --likes --max-date "2014-12-31" --asc --remove
-
-Generated `epub` files can be found in the sub folder `./shut-up-bird.arch`, e.g., `./shut-up-bird.arch/2017-03-05_1000/tweets.epub`.
-
-Note that you must explicitly specify the `--remove` parameter in order to delete tweets or likes. Furthermore, tweets or likes will be deleted only after an `epub` file was successfully created.
+Note that you must explicitly specify the `--remove` parameter in order to delete tweets or likes. To prevent inconsistencies, tweets or likes will be deleted only after an `epub` file was successfully created first.
 
 # License
 
