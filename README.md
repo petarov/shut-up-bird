@@ -1,5 +1,7 @@
 # Shut Up Bird
 
+**⚠️ NO LONGER MAINTAINED 😔**
+
 Archives your tweets in an [EPUB](https://en.wikipedia.org/wiki/EPUB) book and then optionally deletes them.
 
 Things you could do:
